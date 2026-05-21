@@ -1,0 +1,16 @@
+# Data files (available separately from GEO/repository)
+data/
+data_raw/
+
+# Generated figures
+figures/
+
+# R temporary files
+.RData
+.Rhistory
+*.Rproj
+.Rproj.user/
+
+# OS files
+.DS_Store
+Thumbs.db
