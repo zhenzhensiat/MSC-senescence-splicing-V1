@@ -358,6 +358,7 @@ trends <- read.csv(file.path(dir_data, "05_multilayer_trends.csv"), stringsAsFac
 # ============ 6a: Layer category distribution ============
 cat("  6a: Layer category distribution...\n")
 layer_dist <- gene_cat %>%
+  distinct(symbol, .keep_all = TRUE) %>%
   count(layer) %>%
   mutate(pct = round(n / sum(n) * 100, 1)) %>%
   arrange(desc(n))
@@ -506,7 +507,7 @@ de_p12 <- read.csv(file.path(dir_data, "02_DE_P12_vs_P2.csv"), stringsAsFactors 
 
 filter_de <- function(df, fc_cut=1, fdr_cut=0.05) {
   df %>% filter(padj < fdr_cut, abs(log2FoldChange) > fc_cut) %>%
-    distinct(symbol, .keep_all = TRUE)
+    distinct(gene_id, .keep_all = TRUE)
 }
 
 de8  <- filter_de(de_p8)
@@ -519,10 +520,10 @@ venn_sets <- data.frame(
                  "All 3"),
   n_DEG = c(
     nrow(de8), nrow(de10), nrow(de12),
-    length(intersect(de8$symbol, de10$symbol)),
-    length(intersect(de8$symbol, de12$symbol)),
-    length(intersect(de10$symbol, de12$symbol)),
-    length(Reduce(intersect, list(de8$symbol, de10$symbol, de12$symbol)))
+    length(intersect(de8$gene_id, de10$gene_id)),
+    length(intersect(de8$gene_id, de12$gene_id)),
+    length(intersect(de10$gene_id, de12$gene_id)),
+    length(Reduce(intersect, list(de8$gene_id, de10$gene_id, de12$gene_id)))
   )
 )
 venn_sets$Comparison <- factor(venn_sets$Comparison, levels = venn_sets$Comparison)

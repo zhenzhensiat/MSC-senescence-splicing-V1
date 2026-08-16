@@ -335,12 +335,11 @@ fig3a <- ggplot(fisher_df, aes(x = Group, y = Count, fill = Type)) +
   geom_col(width = 0.55, color = "white", linewidth = 0.25) +
   scale_fill_manual(values = c("Overlap" = "#D73027", "Expected" = "grey70", "Separate" = "#4575B4"), guide = "none") +
   geom_text(aes(label = Count, y = Count + max(Count) * 0.04), size = 2.8, fontface = "bold") +
-  annotate("text", x = 1.5, y = max(fisher_df$Count) * 1.10,
-           label = "OR = 0.43, P = 0.0023", size = 2.6, color = "#D73027", fontface = "bold") +
-  labs(x = "", y = "Number of genes", subtitle = "DEG\u2013DSE overlap depletion") +
+  labs(x = "", y = "Number of genes",
+       subtitle = "DEG\u2013DSE gene overlap | observed 4 vs expected 5.2 (hypergeometric p = 0.40)") +
   theme_bindlab(base_size = TXT) +
   theme(axis.text.x = element_text(size = TXT - 1),
-        plot.subtitle = element_text(size = TXT, face = "bold", hjust = 0.5))
+        plot.subtitle = element_text(size = TXT - 1, face = "bold", hjust = 0.5))
 cat("  3a done\n")
 
 # ============ 3b: Senescence gene set enrichment ============
@@ -363,17 +362,20 @@ fig3b <- ggplot(panel_focus, aes(x = gene_set_label, y = panel_label, fill = log
   geom_text(aes(label = sprintf("%.2f%s", odds_ratio,
     ifelse(sig_label != "", paste0(" ", sig_label), ""))), size = 2.6, color = "grey20") +
   scale_fill_gradient2(low = "#4575B4", mid = "white", high = "#D73027", midpoint = 0, name = "log2(OR)") +
-  labs(x = "", y = "") +
+  labs(x = "", y = "", subtitle = "Senescence gene set enrichment") +
   theme_bindlab(base_size = TXT) +
   theme(legend.position = "right", legend.key.size = unit(0.22, "cm"),
         legend.title = element_text(size = TXT - 1),
         axis.text = element_text(size = TXT),
-        axis.text.x = element_text(face = "bold", angle = 20, hjust = 1))
+        axis.text.x = element_text(face = "bold", angle = 20, hjust = 1),
+        plot.subtitle = element_text(size = TXT, face = "bold", hjust = 0.5))
 cat("  3b done\n")
 
 # ============ 3c: GO BP dot plot ============
 cat("  3c: GO BP dot plot...\n")
 prepare_go <- function(df, label, top_n = 7) {
+  if (nrow(df) == 0) return(NULL)
+  df <- df[df$padj < 0.05, ]  # keep only significant terms
   if (nrow(df) == 0) return(NULL)
   df <- df[order(df$padj), ]
   df <- df[1:min(top_n, nrow(df)), ]
@@ -392,13 +394,14 @@ fig3c <- ggplot(go_all, aes(x = neg_log10_padj, y = Description)) +
   scale_color_manual(values = c("DEG-only" = "#D73027", "DSE-only" = "#4575B4"), name = "Source") +
   scale_size_continuous(range = c(1.5, 4.5), name = "Count") +
   scale_x_continuous(limits = c(0, max(go_all$neg_log10_padj) * 1.15)) +
-  labs(x = expression(-log[10](p[adj])), y = "") +
+  labs(x = expression(-log[10](p[adj])), y = "", subtitle = "GO biological process enrichment") +
   theme_bindlab(base_size = TXT) +
   theme(legend.position = "bottom", legend.key.size = unit(0.20, "cm"),
         legend.text = element_text(size = TXT - 2),
         legend.title = element_text(size = TXT - 1),
         axis.text.y = element_text(size = TXT - 2),
-        legend.box = "vertical", legend.margin = margin(0, 0, 0, 0)) +
+        legend.box = "vertical", legend.margin = margin(0, 0, 0, 0),
+        plot.subtitle = element_text(size = TXT, face = "bold", hjust = 0.5)) +
   guides(color = guide_legend(order = 1), size = guide_legend(order = 2))
 cat("  3c done\n")
 
@@ -407,6 +410,8 @@ cat("  3d: KEGG dot plot...\n")
 prepare_kegg <- function(df, label, top_n = 6) {
   if (nrow(df) == 0) return(NULL)
   # KEGG files use p.adjust, Description, Count
+  df <- df[df$p.adjust < 0.05, ]  # keep only significant pathways
+  if (nrow(df) == 0) return(NULL)
   df <- df[order(df$p.adjust), ]
   df <- df[1:min(top_n, nrow(df)), ]
   df$source <- label
@@ -423,13 +428,14 @@ fig3d <- ggplot(kegg_all, aes(x = neg_log10_padj, y = Description)) +
   scale_color_manual(values = c("DEG-only" = "#D73027", "DSE-only" = "#4575B4"), name = "Source") +
   scale_size_continuous(range = c(1.5, 4.5), name = "Count") +
   scale_x_continuous(limits = c(0, max(kegg_all$neg_log10_padj) * 1.15)) +
-  labs(x = expression(-log[10](p[adj])), y = "") +
+  labs(x = expression(-log[10](p[adj])), y = "", subtitle = "KEGG pathway enrichment") +
   theme_bindlab(base_size = TXT) +
   theme(legend.position = "bottom", legend.key.size = unit(0.20, "cm"),
         legend.text = element_text(size = TXT - 2),
         legend.title = element_text(size = TXT - 1),
         axis.text.y = element_text(size = TXT - 2),
-        legend.box = "vertical", legend.margin = margin(0, 0, 0, 0)) +
+        legend.box = "vertical", legend.margin = margin(0, 0, 0, 0),
+        plot.subtitle = element_text(size = TXT, face = "bold", hjust = 0.5)) +
   guides(color = guide_legend(order = 1), size = guide_legend(order = 2))
 cat("  3d done\n")
 
@@ -611,7 +617,7 @@ nmd_categories$nmd_category <- factor(nmd_categories$nmd_category,
 
 fig5a <- ggplot(nmd_categories, aes(x = nmd_category, y = n, fill = nmd_category)) +
   geom_col(width = 0.55, color = "white", linewidth = 0.2) +
-  geom_text(aes(label = paste0(n, " (", pct, "%)")), hjust = -0.05, size = 3.0, fontface = "bold", color = "grey20") +
+  geom_text(aes(label = paste0(n, " (", pct, "%)")), hjust = -0.05, size = 2.8, fontface = "bold", color = "grey20") +
   coord_flip() +
   scale_fill_manual(values = c(
     "Frameshift inclusion (NMD risk)" = "#D73027",
@@ -621,14 +627,14 @@ fig5a <- ggplot(nmd_categories, aes(x = nmd_category, y = n, fill = nmd_category
   labs(title = "Functional consequences of SE-type DSE",
        subtitle = sprintf("82 skipped exon events | PTC-50nt rule (Lindeboom 2016)"),
        x = "", y = "Number of events") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.28))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.55))) +
   theme_bindlab(base_size = TXT) +
-  theme(plot.title = element_text(size = TXT, face = "bold"),
-        plot.subtitle = element_text(size = TXT - 1, color = "grey40"))
+  theme(plot.title = element_text(size = TXT, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = TXT - 1, color = "grey40", hjust = 0.5))
 cat("  5a done\n")
 
-# ============ 5b: SF3B1 autoregulatory NMD highlight ============
-cat("  5b: SF3B1 autoregulatory NMD...\n")
+# ============ 5b: SF3B1 NMD_risk / SRSF4 NMD_rescue dPSI trajectories ============
+cat("  5b: Splicing factor DSE dPSI trajectories...\n")
 sf_nmd <- se_annotated %>%
   filter(Gene_symbol %in% c("SF3B1", "SRSF4", "PRPF40B")) %>%
   select(Gene_symbol, exon_length, frame_status, nmd_category, dpsi_P8, dpsi_P10, dpsi_P12)
@@ -645,44 +651,50 @@ sf_nmd_long$Gene_symbol <- factor(sf_nmd_long$Gene_symbol,
 fig5b <- ggplot(sf_nmd_long, aes(x = passage, y = dpsi, fill = Gene_symbol)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.55, color = "white", linewidth = 0.15) +
   geom_hline(yintercept = 0, linewidth = 0.3, color = "grey60") +
+  geom_text(aes(label = sprintf("%.3f", dpsi),
+                y = dpsi + ifelse(dpsi >= 0, 0.012, -0.012)),
+            position = position_dodge(width = 0.7),
+            size = 2.2, vjust = 0, color = "grey25") +
   scale_fill_manual(values = c("SF3B1" = "#D73027", "SRSF4" = "#4575B4", "PRPF40B" = "#FF7F00"),
                     name = "") +
+  scale_y_continuous(expand = expansion(mult = c(0.10, 0.20))) +
   labs(x = "Passage", y = expression(Delta*PSI),
        title = "Splicing factor DSE events",
-       subtitle = "SF3B1 (autoregulatory NMD) | SRSF4 (NMD rescue) | PRPF40B (in-frame)") +
+       subtitle = "SF3B1 (NMD_risk predicted) | SRSF4 (NMD_rescue predicted) | PRPF40B (in-frame)") +
   theme_bindlab(base_size = TXT) +
-  theme(plot.title = element_text(size = TXT, face = "bold"),
-        plot.subtitle = element_text(size = TXT - 2, color = "grey40"),
-        legend.position = "bottom", legend.key.size = unit(0.18, "cm"),
+  theme(plot.title = element_text(size = TXT, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = TXT - 2, color = "grey40", hjust = 0.5),
+        legend.position = c(0.78, 0.90), legend.justification = c("left", "top"),
+        legend.background = element_rect(fill = alpha("white", 0.9), color = "grey85", linewidth = 0.25),
+        legend.key.size = unit(0.18, "cm"),
         legend.text = element_text(size = TXT - 1),
         axis.text.x = element_text(face = "bold"))
 cat("  5b done\n")
 
-# ============ 5c: KEGG pathway enrichment of NMD-affected genes ============
+# ============ 5c: KEGG pathway enrichment of DSE genes ============
+# Uses clusterProfiler enrichment results (11_KEGG_DSE_only.csv):
+# Fanconi anemia pathway (padj = 0.0017) and homologous recombination (padj = 0.013)
 cat("  5c: KEGG pathway of DSE genes...\n")
-if (nrow(kegg_layer) > 0) {
-  # Ensure unique pathway names
-  kegg_layer <- kegg_layer[!duplicated(kegg_layer$pathway), ]
-  kegg_layer$pathway <- as.character(kegg_layer$pathway)
-  kegg_layer <- kegg_layer[order(kegg_layer$count), ]
-  kegg_layer$pathway <- factor(kegg_layer$pathway, levels = kegg_layer$pathway)
+kegg_dse <- read.csv(file.path(dir_data, "11_KEGG_DSE_only.csv"), stringsAsFactors = FALSE)
 
-  fig5c <- ggplot(kegg_layer, aes(x = count, y = pathway, fill = group)) +
-    geom_col(width = 0.6, color = "white", linewidth = 0.15) +
-    geom_text(aes(label = paste0(count, " (", round(fraction * 100, 1), "%)"),
-                  x = count + max(count) * 0.03),
-              size = 2.4, hjust = 0, color = "grey30") +
-    scale_fill_manual(values = c("NMD_risk" = "#D73027", "NMD_rescue" = "#FC8D59",
-                                  "In_frame" = "#4575B4"), name = "Category") +
-    labs(x = "Number of DSE genes", y = "",
-         title = "KEGG pathway enrichment of DSE-affected genes") +
-    scale_x_continuous(expand = expansion(mult = c(0, 0.25))) +
+if (nrow(kegg_dse) > 0) {
+  kegg_plot <- kegg_dse[order(kegg_dse$p.adjust), ]
+  kegg_plot$Description <- factor(kegg_plot$Description,
+    levels = rev(kegg_plot$Description))
+  # 仅 2 条显著通路时用横向条形图（-log10 padj），避免气泡图"图例压倒数据"问题
+  kegg_plot$neg_log10_padj <- -log10(kegg_plot$p.adjust)
+
+  fig5c <- ggplot(kegg_plot, aes(x = neg_log10_padj, y = Description)) +
+    geom_col(width = 0.55, fill = "#4575B4", alpha = 0.85) +
+    geom_text(aes(label = sprintf("padj = %.3g", p.adjust)),
+              hjust = 0, nudge_x = 0.08, size = 2.6, color = "grey20") +
+    labs(x = expression(-log[10](p[adj])), y = "",
+         title = "KEGG pathway enrichment of DSE genes",
+         subtitle = "Fanconi anemia & homologous recombination (DNA repair)") +
+    scale_x_continuous(expand = expansion(mult = c(0.02, 1.0))) +
     theme_bindlab(base_size = TXT) +
-    theme(plot.title = element_text(size = TXT, face = "bold"),
-          legend.position = c(0.85, 0.15),
-          legend.background = element_rect(fill = alpha("white", 0.9), color = "grey85", linewidth = 0.25),
-          legend.key.size = unit(0.18, "cm"),
-          legend.text = element_text(size = TXT - 2))
+    theme(plot.title = element_text(size = TXT, face = "bold", hjust = 0.5),
+          plot.subtitle = element_text(size = TXT - 2, color = "grey40", hjust = 0.5))
 } else {
   fig5c <- ggplot() + annotate("text", x = 0.5, y = 0.5, label = "No KEGG data available",
                                 size = 3, color = "grey50") + theme_void()
@@ -709,9 +721,9 @@ fig5d <- ggplot(se_annotated, aes(x = exon_length, fill = nmd_status)) +
        title = "Skipped exon length distribution by NMD status",
        subtitle = "Dotted lines: multiples of 3 (in-frame boundaries)") +
   theme_bindlab(base_size = TXT) +
-  theme(plot.title = element_text(size = TXT, face = "bold"),
-        plot.subtitle = element_text(size = TXT - 2, color = "grey40"),
-        legend.position = c(0.82, 0.85),
+  theme(plot.title = element_text(size = TXT, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = TXT - 2, color = "grey40", hjust = 0.5),
+        legend.position = c(0.78, 0.88), legend.justification = c("left", "top"),
         legend.background = element_rect(fill = alpha("white", 0.9), color = "grey85", linewidth = 0.25),
         legend.key.size = unit(0.18, "cm"),
         legend.text = element_text(size = TXT - 2))
@@ -720,16 +732,16 @@ cat("  5d done\n")
 # ============ Assembly ============
 cat("  Assembling Fig5_v5...\n")
 fig5_row1 <- plot_grid(fig5a, fig5b, labels = c("a", "b"), label_size = 9,
-                        rel_widths = c(1.1, 1), ncol = 2)
+                        rel_widths = c(1.1, 1), ncol = 2, align = "h", axis = "tb")
 fig5_row2 <- plot_grid(fig5c, fig5d, labels = c("c", "d"), label_size = 9,
-                        rel_widths = c(1, 1.1), ncol = 2)
+                        rel_widths = c(1, 1.1), ncol = 2, align = "h", axis = "tb")
 fig5 <- plot_grid(fig5_row1, fig5_row2, ncol = 1, rel_heights = c(0.9, 1.1))
 save_fig(fig5, "Fig5_v5.pdf", w = FIG_W, h = FIG_H, dpi = 300)
 cat("  Fig5_v5 complete.\n\n")
 
 # ---- Fig6_v5.R ----
 
-cat("\n========== Fig6_v5: ECM-免疫双轴 ==========\n")
+cat("\n========== Fig6_v5: ECM与免疫转录程序 ==========\n")
 
 PW_FULL <- 6.7; PW_HALF <- 3.35
 FIG_W <- PW_FULL; FIG_H <- 6.0
@@ -817,7 +829,7 @@ if (nrow(ecm_genes) > 0) {
   fig6b <- ggplot() + annotate("text", x = 0.5, y = 0.5,
     label = "ECM convergence:\ncollagens, integrins, MMPs\n(detected across layers)",
     size = 3, color = "grey40") + theme_void() +
-    labs(title = "ECM remodeling axis")
+    labs(title = "ECM remodeling program")
 }
 cat("  6b done\n")
 
@@ -862,16 +874,16 @@ if (nrow(immune_genes) > 0) {
   fig6c <- ggplot() + annotate("text", x = 0.5, y = 0.5,
     label = "Immune modulation:\nPD-L1, cytokines, MHC\n(detected across layers)",
     size = 3, color = "grey40") + theme_void() +
-    labs(title = "Immune modulation axis")
+    labs(title = "Immune modulation program")
 }
 cat("  6c done\n")
 
-# ============ 6d: Dual-axis model schematic ============
-cat("  6d: Dual-axis model schematic...\n")
+# ============ 6d: Transcriptional programs schematic ============
+cat("  6d: Transcriptional programs schematic...\n")
 fig6d <- ggplot() +
   annotate("rect", xmin = 0.02, xmax = 0.98, ymin = 0.15, ymax = 0.98,
            fill = "#F0F4FA", color = "grey60", linewidth = 0.3) +
-  annotate("text", x = 0.50, y = 0.93, label = "Senescence-driven dual-axis model",
+  annotate("text", x = 0.50, y = 0.93, label = "Two transcriptional programs of the senescent MSC secretome",
            size = 2.8, fontface = "bold", color = "#2F5496") +
 
   annotate("rect", xmin = 0.04, xmax = 0.45, ymin = 0.56, ymax = 0.88,
@@ -880,7 +892,7 @@ fig6d <- ggplot() +
            fontface = "bold", color = "#2F5496") +
   annotate("text", x = 0.245, y = 0.74, label = "Collagens, integrins,\nMMPs, fibronectin",
            size = 2.0, color = "grey40", lineheight = 1.2) +
-  annotate("text", x = 0.245, y = 0.63, label = "Transcriptome + Splicing",
+  annotate("text", x = 0.245, y = 0.63, label = "Transcriptome (dominant); splicing (selective)",
            size = 1.8, fontface = "italic", color = "grey50") +
 
   annotate("rect", xmin = 0.55, xmax = 0.96, ymin = 0.56, ymax = 0.88,
@@ -889,7 +901,7 @@ fig6d <- ggplot() +
            fontface = "bold", color = "#A50026") +
   annotate("text", x = 0.755, y = 0.74, label = "PD-L1, cytokines,\nMHC, chemokines",
            size = 2.0, color = "grey40", lineheight = 1.2) +
-  annotate("text", x = 0.755, y = 0.63, label = "Transcriptome + Proteome",
+  annotate("text", x = 0.755, y = 0.63, label = "Transcriptome (dominant)",
            size = 1.8, fontface = "italic", color = "grey50") +
 
   annotate("rect", xmin = 0.10, xmax = 0.90, ymin = 0.25, ymax = 0.48,

@@ -1,8 +1,15 @@
 # 00_project_config.R — global configuration for MSC senescence transcriptome analysis
 # Source this file at the beginning of each analysis script: source("00_project_config.R")
 
-# Project root: auto-detect from working directory
-project_root <- getwd()
+# Project root: auto-detect. Prefer a parent directory containing data/,
+# so scripts can be run either from the project root or from within the
+# code repository subdirectory.
+cwd_start <- getwd()
+project_root <- cwd_start
+if (!dir.exists(file.path(project_root, "data")) &&
+    dir.exists(file.path(dirname(project_root), "data"))) {
+  project_root <- dirname(project_root)
+}
 setwd(project_root)
 
 # Directory structure
@@ -14,8 +21,10 @@ for (d in c(dir_raw, dir_data, dir_fig)) {
   if (!dir.exists(d)) dir.create(d, recursive = TRUE)
 }
 
-# Nature-style publication theme
-source(file.path(project_root, "theme_bindlab.R"))
+# Nature-style publication theme (located in the code repository directory)
+theme_path <- file.path(project_root, "theme_bindlab.R")
+if (!file.exists(theme_path)) theme_path <- file.path(cwd_start, "theme_bindlab.R")
+source(theme_path)
 
 # Passage color palette (blue=young → red=senescent)
 passage_colors <- c(
